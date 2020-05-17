@@ -16,10 +16,13 @@ namespace ImageBuilderPackager
             var serviceProvider = new Startup().Initialise();
 
             var app = serviceProvider.GetService<ISearchAmiService>();
-            await app.Execute(request);
+            var image = await app.Execute(request);
 
             return new ImageBuilderPackagerResponse {
-                success = true
+                success = (image != null),
+                imageId = image?.ImageId,
+                name = image?.Name,
+                description = image?.Description,
             };
         }
 

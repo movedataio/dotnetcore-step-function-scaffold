@@ -17,23 +17,17 @@ namespace ImageBuilderPackager
             this.ec2Client = ec2ClientService;
         }
 
-        public async Task Execute(ImageBuilderPackagerRequest request)
+        /// Get the AMI Image Details from EC2 AWS Marketplace
+        public async Task<Amazon.EC2.Model.Image> Execute(ImageBuilderPackagerRequest request)
         {
-            // Request Details
-            this.logger.LogInformation(string.Format("Benchmark Name: {0}", request.benchmarkName));
-            this.logger.LogInformation(string.Format("Profile Level: {0}", request.profileLevel));
-
-            // Get the AMI Image Details from EC2 AWS Marketplace
-            var image = await GetBaseAmiDetails(request);
-        }
-
-        // --------------------------------------------------------------------------------------------------------------------------------
-
-        private async Task<Amazon.EC2.Model.Image> GetBaseAmiDetails(ImageBuilderPackagerRequest request) {
             Amazon.EC2.Model.Image response = null;
+
+            // Request Details
+            this.logger.LogInformation(string.Format("Benchmark Name: {0}", request?.benchmarkName));
+            this.logger.LogInformation(string.Format("Profile Level: {0}", request?.profileLevel));
             
             // Construct the AMI name pattern
-            var amiNamePattern = request.benchmarkName + "*" + request.benchmarkName + "*";
+            var amiNamePattern = request.benchmarkName + "*" + request.profileLevel + "*";
 
             // Create a Describe Images Request
             var describeRequest = new Amazon.EC2.Model.DescribeImagesRequest{
@@ -69,7 +63,9 @@ namespace ImageBuilderPackager
         }
 
         private string GetAmiImageDetailsAsString(Amazon.EC2.Model.Image item) {
-            return string.Format("{0} | {1} - {2} - {3} ({4})", item.Name, item.Description, item.ImageId, item.PlatformDetails, item.CreationDate);
+            return (item != null)
+                ? string.Format("{0} | {1} - {2} - {3} ({4})", item.Name, item.Description, item.ImageId, item.PlatformDetails, item.CreationDate)
+                : null;
         }
 
     }
