@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Sample SAM Template for image-builder-packager
+  donetcore Step Function Scaffold
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -9,32 +9,142 @@ Globals:
     Timeout: 10
 
 Resources:
-  ImageBuilderPackagerFunction:
+
+  # Step Function Implementation
+  BatchJobWorkflowInstall:
+    Type: 'AWS::StepFunctions::StateMachine'
+    Properties:
+      StateMachineName: BatchJobStateMachine
+      DefinitionString: !Sub |
+        {
+          "Comment": "AWS Batch Job",
+          "StartAt": "WorkflowStep1",
+          "Version": "1.0",
+          "States": {
+            "WorkflowStep1": {
+              "Type": "Task",
+              "Resource": "${WorkflowStep1Function.Arn}",
+              "Retry": [{
+                "ErrorEquals": ["States.TaskFailed"],
+                "IntervalSeconds": 2,
+                "MaxAttempts": 3,
+                "BackoffRate": 2
+              }],
+              "Next": "Done"
+            },
+            "Done": {
+              "Type": "Succeed"
+            }
+          }
+        }
+      RoleArn: !GetAtt 'WorkflowRole.Arn'
+
+  # ------------------------------------------------------------
+  # Lambda Functions
+
+  StepFunctionLauncherFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: ./src/ImageBuilderPackager/
-      Handler: ImageBuilderPackager::ImageBuilderPackager.Lambda::SearchAmiHandler
+      FunctionName: BatchJobLauncher
+      CodeUri: ./src/BatchJob/
+      Handler: BatchJob::BatchJob.Lambda::StepFunctionLauncherHandler
       Runtime: dotnetcore3.1
+      Timeout: 30
+      Role: !GetAtt 'BatchJobLauncherRole.Arn'
       Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
         Variables:
           PARAM1: VALUE
-      Events:
-        ImageBuilderPackager:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /hello
-            Method: get
+  WorkflowStep1Function:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      FunctionName: WorkflowStep01
+      CodeUri: ./src/BatchJob/
+      Handler: BatchJob::BatchJob.Lambda::WorkflowStep01Handler
+      Runtime: dotnetcore3.1
+      Role: !GetAtt 'WorkflowStepRole.Arn'
+      Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+        Variables:
+          PARAM1: VALUE
 
-Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  ImageBuilderPackagerApi:
-    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
-  ImageBuilderPackagerFunction:
-    Description: "Hello World Lambda Function ARN"
-    Value: !GetAtt ImageBuilderPackagerFunction.Arn
-  ImageBuilderPackagerFunctionIamRole:
-    Description: "Implicit IAM Role created for Hello World function"
-    Value: !GetAtt ImageBuilderPackagerFunctionRole.Arn
+  ScheduledRule: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Name: batch-job-app-ScheduledRule
+      Description: "Execute Batch Job"
+      ScheduleExpression: "rate(1 minute)"
+      State: "ENABLED"
+      Targets: 
+        - 
+          Id: "TargetFunctionV1"
+          Arn: 
+            Fn::GetAtt: 
+              - "StepFunctionLauncherFunction"
+              - "Arn"
+          Input: 
+            Fn::Sub:
+              - '{ "target": "${targetArn}" }'
+              - { targetArn: !Ref BatchJobWorkflowInstall }
+
+  PermissionForEventsToInvokeLambda: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      FunctionName: 
+        Ref: "StepFunctionLauncherFunction"
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: 
+        Fn::GetAtt: 
+          - "ScheduledRule"
+          - "Arn"
+
+  BatchJobLauncherRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: 'lambda.amazonaws.com'
+          Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+      - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Policies:
+      - PolicyName: stepfunctions
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: 'states:StartExecution'
+            Resource: !Ref BatchJobWorkflowInstall
+
+  WorkflowStepRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: 'lambda.amazonaws.com'
+          Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+      - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+
+  WorkflowRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: !Sub 'states.${AWS::Region}.amazonaws.com'
+          Action: 'sts:AssumeRole'
+      Policies:
+      - PolicyName: lambda
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: 'lambda:InvokeFunction'
+            Resource:
+            - !GetAtt 'WorkflowStep1Function.Arn'

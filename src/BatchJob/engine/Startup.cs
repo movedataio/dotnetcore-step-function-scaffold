@@ -2,7 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ImageBuilderPackager
+namespace BatchJob
 {
 
     public class Startup
@@ -27,7 +27,8 @@ namespace ImageBuilderPackager
             // Register services with DI system
             serviceCollection.AddTransient<IEnvironmentService, EnvironmentService>();
             serviceCollection.AddTransient<IConfigurationService, ConfigurationService>();
-            serviceCollection.AddTransient<ISearchAmiService, SearchAmiService>();
+            serviceCollection.AddTransient<IStepFunctionLauncher, StepFunctionLauncher>();
+            serviceCollection.AddTransient<IWorkflowStep01, WorkflowStep01>();
         }
 
         private void ConfigureAWS(IServiceCollection serviceCollection)
@@ -40,7 +41,7 @@ namespace ImageBuilderPackager
 
             var options = Configuration.GetAWSOptions();
             serviceCollection.AddDefaultAWSOptions(options);
-            serviceCollection.AddAWSService<Amazon.EC2.IAmazonEC2>();
+            serviceCollection.AddAWSService<Amazon.StepFunctions.IAmazonStepFunctions>();
         }
 
     }

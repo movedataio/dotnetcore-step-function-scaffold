@@ -8,7 +8,7 @@ using Xunit;
 using Amazon.Lambda.TestUtilities;
 using Amazon.Lambda.APIGatewayEvents;
 
-namespace ImageBuilderPackager.Tests
+namespace BatchJob.Tests
 {
   public class FunctionTest
   {
@@ -26,7 +26,7 @@ namespace ImageBuilderPackager.Tests
     }
 
     [Fact]
-    public async Task TestImageBuilderPackagerFunctionHandler()
+    public async Task TestBatchJobFunctionHandler()
     {
       /*
             var request = new APIGatewayProxyRequest();

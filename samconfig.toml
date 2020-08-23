@@ -1,0 +1,10 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "batch-job-app"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-vvbiw802vho8"
+s3_prefix = "batch-job-app"
+region = "ap-southeast-2"
+profile = "blueengine"
+capabilities = "CAPABILITY_IAM"

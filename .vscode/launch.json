@@ -11,7 +11,7 @@
             "preLaunchTask": "build",
             "program": "~/.dotnet/tools/dotnet-lambda-test-tool-3.1",
             "args": [],
-            "cwd": "${workspaceFolder}/src/ImageBuilderPackager",
+            "cwd": "${workspaceFolder}/src/BatchJob",
             "console": "internalConsole",
             "stopAtEntry": false,
             "internalConsoleOptions": "openOnSessionStart"
@@ -22,8 +22,8 @@
             "request": "launch",
             "preLaunchTask": "build",
             "program": "~/.dotnet/tools/dotnet-lambda-test-tool-3.1",
-            "args": ["--payload ${workspaceFolder}/src/ImageBuilderPackager/payload.json", "--no-ui", "--pause-exit false"],
-            "cwd": "${workspaceFolder}/src/ImageBuilderPackager",
+            "args": ["--payload ${workspaceFolder}/src/BatchJob/payload.json", "--no-ui", "--pause-exit false"],
+            "cwd": "${workspaceFolder}/src/BatchJob",
             "console": "internalConsole",
             "stopAtEntry": false,
             "internalConsoleOptions": "openOnSessionStart"
@@ -33,9 +33,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/test/ImageBuilderPackager.Test/bin/Debug/netcoreapp3.1/ImageBuilderPackager.Tests.dll",
+            "program": "${workspaceFolder}/test/BatchJob.Test/bin/Debug/netcoreapp3.1/BatchJob.Tests.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/test/ImageBuilderPackager.Test",
+            "cwd": "${workspaceFolder}/test/BatchJob.Test",
             "console": "internalConsole",
             "stopAtEntry": false
         },
